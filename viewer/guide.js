@@ -4,12 +4,14 @@
  * Version: 1.0.0
  * Purpose: Main Viewer application logic.
  * Follows ARCHITECTURE.md: Controllers coordinate engines and update interface.
+ * Implements Sprint_Viewer_01_Foundation.md and Sprint_Viewer_02_Rendering.md
  */
 
 /**
  * GuideOS Viewer - Main Application
  * This is the bootstrap and controller for the Viewer.
- * It coordinates between engines (Theme, Storage, etc.) and the UI.
+ * It coordinates between engines (Theme, Storage, GuideLoader, Entities, Validation)
+ * and the UI.
  */
 (function() {
     'use strict';
@@ -27,66 +29,13 @@
             darkMode: false,
             manufacturerTheme: false,
             unitSystem: 'original',
-            collapsedPhases: {}
+            collapsedPhases: {},
+            expandedNotes: {}
         }
     };
 
     // ===== DOM Elements =====
-    const elements = {
-        // Layout
-        sidebar: null,
-        mainContent: null,
-        contentArea: null,
-        
-        // Screens
-        welcomeScreen: null,
-        guideContent: null,
-        errorScreen: null,
-        loadingScreen: null,
-        
-        // Guide Info
-        guideTitle: null,
-        guideSubtitle: null,
-        currentGuideId: null,
-        
-        // Metadata
-        metadataManufacturer: null,
-        metadataModel: null,
-        metadataCategory: null,
-        metadataDifficulty: null,
-        metadataTime: null,
-        progressBar: null,
-        progressText: null,
-        progressSteps: null,
-        
-        // Phases
-        phasesContainer: null,
-        
-        // Controls
-        darkModeToggle: null,
-        manufacturerThemeToggle: null,
-        unitSystemSelect: null,
-        mobileSidebarToggle: null,
-        sidebarToggle: null,
-        loadSampleBtn: null,
-        loadGuideBtn: null,
-        loadGuideForm: null,
-        guideIdInput: null,
-        loadGuideSubmit: null,
-        loadGuideCancel: null,
-        exportBtn: null,
-        aiBtn: null,
-        
-        // Error
-        errorTitle: null,
-        errorMessage: null,
-        errorRetryBtn: null,
-        errorBackBtn: null,
-        
-        // Loading
-        loadingMessage: null,
-        loadingGuideId: null
-    };
+    const elements = {};
 
     // ===== Initialize Application =====
     function initialize() {
@@ -102,11 +51,13 @@
         // Setup event listeners
         setupEventListeners();
         
-        // Show welcome screen
-        showWelcomeScreen();
-        
         // Check URL for guide ID
         checkUrlForGuide();
+        
+        // Show welcome screen if no guide is loaded
+        if (!state.currentGuide) {
+            showWelcomeScreen();
+        }
     }
 
     // ===== Cache DOM Elements =====
@@ -154,6 +105,8 @@
         elements.loadGuideCancel = document.getElementById('load-guide-cancel');
         elements.exportBtn = document.getElementById('export-btn');
         elements.aiBtn = document.getElementById('ai-btn');
+        elements.collapseAllBtn = document.getElementById('collapse-all-btn');
+        elements.expandAllBtn = document.getElementById('expand-all-btn');
         
         // Error
         elements.errorTitle = document.getElementById('error-title');
@@ -185,6 +138,14 @@
         state.settings.manufacturerTheme = Storage.load('ManufacturerTheme', false);
         state.settings.unitSystem = Storage.load('UnitSystem', 'original');
         state.settings.collapsedPhases = Storage.load('CollapsedPhases', {});
+        state.settings.expandedNotes = Storage.load('ExpandedNotes', {});
+        
+        // Load progress for last guide if available
+        const lastGuideId = Storage.load('LastGuideId', null);
+        if (lastGuideId) {
+            state.progress = Storage.load('Progress-' + lastGuideId, {});
+            state.notes = Storage.load('Notes-' + lastGuideId, {});
+        }
         
         // Apply settings to UI
         applySettingsToUI();
@@ -239,6 +200,11 @@
             elements.unitSystemSelect.addEventListener('change', function() {
                 state.settings.unitSystem = this.value;
                 Storage.save('UnitSystem', state.settings.unitSystem);
+                
+                // Re-render the guide with new unit system
+                if (state.currentGuide) {
+                    renderGuide();
+                }
             });
         }
         
@@ -308,17 +274,46 @@
             });
         }
         
+        // Collapse/Expand All Buttons
+        if (elements.collapseAllBtn) {
+            elements.collapseAllBtn.addEventListener('click', function() {
+                collapseAllPhases();
+            });
+        }
+        
+        if (elements.expandAllBtn) {
+            elements.expandAllBtn.addEventListener('click', function() {
+                expandAllPhases();
+            });
+        }
+        
         // Window resize
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', Utils.debounce(function() {
             // Close sidebar on small screens when clicking outside
             if (window.innerWidth <= 1024) {
-                if (elements.sidebar.classList.contains('open')) {
-                    // Keep open if explicitly opened
-                }
+                // Keep sidebar open if explicitly opened
             } else {
-                elements.sidebar.classList.remove('open');
+                if (elements.sidebar) {
+                    elements.sidebar.classList.remove('open');
+                }
             }
+        }, 250));
+        
+        // Before unload - save state
+        window.addEventListener('beforeunload', function() {
+            saveCurrentState();
         });
+    }
+
+    // ===== Save Current State =====
+    function saveCurrentState() {
+        if (state.currentGuideId) {
+            Storage.save('LastGuideId', state.currentGuideId);
+            Storage.save('Progress-' + state.currentGuideId, state.progress);
+            Storage.save('Notes-' + state.currentGuideId, state.notes);
+            Storage.save('CollapsedPhases', state.settings.collapsedPhases);
+            Storage.save('ExpandedNotes', state.settings.expandedNotes);
+        }
     }
 
     // ===== Toggle Sidebar =====
@@ -328,12 +323,61 @@
         }
     }
 
+    // ===== Collapse/Expand All Phases =====
+    function collapseAllPhases() {
+        if (elements.phasesContainer) {
+            const phaseCards = elements.phasesContainer.querySelectorAll('.phase-card');
+            phaseCards.forEach(function(phaseCard) {
+                const phaseId = phaseCard.getAttribute('data-phase-id');
+                const phaseContent = phaseCard.querySelector('.phase-content');
+                const phaseToggle = phaseCard.querySelector('.phase-toggle');
+                
+                if (phaseContent && !phaseContent.classList.contains('collapsed')) {
+                    phaseContent.classList.add('collapsed');
+                    if (phaseToggle) {
+                        phaseToggle.classList.add('collapsed');
+                    }
+                    state.settings.collapsedPhases[phaseId] = true;
+                }
+            });
+            Storage.save('CollapsedPhases', state.settings.collapsedPhases);
+        }
+    }
+
+    function expandAllPhases() {
+        if (elements.phasesContainer) {
+            const phaseCards = elements.phasesContainer.querySelectorAll('.phase-card');
+            phaseCards.forEach(function(phaseCard) {
+                const phaseId = phaseCard.getAttribute('data-phase-id');
+                const phaseContent = phaseCard.querySelector('.phase-content');
+                const phaseToggle = phaseCard.querySelector('.phase-toggle');
+                
+                if (phaseContent && phaseContent.classList.contains('collapsed')) {
+                    phaseContent.classList.remove('collapsed');
+                    if (phaseToggle) {
+                        phaseToggle.classList.remove('collapsed');
+                    }
+                    state.settings.collapsedPhases[phaseId] = false;
+                }
+            });
+            Storage.save('CollapsedPhases', state.settings.collapsedPhases);
+        }
+    }
+
     // ===== Check URL for Guide ID =====
     function checkUrlForGuide() {
-        const params = Utils.getQueryParams();
-        if (params.g) {
-            loadGuide(params.g.toUpperCase());
-        }
+        GuideLoader.loadGuideFromUrl({
+            onSuccess: function(guide) {
+                processGuide(guide, guide.guide.id || 'SAMPLE001');
+            },
+            onError: function(error) {
+                console.error('Failed to load guide from URL:', error);
+                showErrorScreen('Failed to Load Guide', error.message);
+            },
+            onNotFound: function(guideId) {
+                showErrorScreen('Guide Not Found', 'The guide "' + guideId + '" could not be found.');
+            }
+        });
     }
 
     // ===== Load Guide =====
@@ -344,8 +388,8 @@
         }
 
         // Validate Guide ID format (8 hex characters)
-        if (!/^[0-9A-F]{8}$/.test(guideId)) {
-            showErrorScreen('Invalid Guide ID', 'Guide ID must be 8 uppercase hexadecimal characters.');
+        if (!/^[0-9A-F]{8}$/.test(guideId) && guideId !== 'SAMPLE001') {
+            showErrorScreen('Invalid Guide ID', 'Guide ID must be 8 uppercase hexadecimal characters (e.g., 8F35A198).');
             return;
         }
 
@@ -360,222 +404,37 @@
         // Show loading screen
         showLoadingScreen(guideId);
         
-        // Calculate guide path
-        const guidePath = Utils.calculateGuidePath(guideId);
-        
-        // Try to load the guide
-        // For now, we'll use a sample guide since the actual guides folder doesn't exist yet
-        // In production, this would fetch from the guides/ folder
-        if (guideId === 'SAMPLE001') {
-            // Load sample guide (for demo purposes)
-            loadSampleGuide();
-        } else {
-            // Try to fetch the actual guide
-            fetchGuide(guidePath, guideId);
-        }
-    }
-
-    // ===== Fetch Guide from Server =====
-    function fetchGuide(path, guideId) {
-        fetch(path)
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('Guide not found: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(function(guide) {
+        // Load the guide
+        GuideLoader.loadGuide(guideId, {
+            onSuccess: function(guide) {
                 processGuide(guide, guideId);
-            })
-            .catch(function(error) {
+            },
+            onError: function(error) {
                 console.error('Failed to load guide:', error);
-                showErrorScreen('Guide Not Found', 'The guide "' + guideId + '" could not be loaded.');
-            });
-    }
-
-    // ===== Load Sample Guide (for demo) =====
-    function loadSampleGuide() {
-        // This is a sample GuideSpec for demonstration
-        const sampleGuide = {
-            guideSpecVersion: '1.0',
-            guide: {
-                id: 'SAMPLE001',
-                title: 'Pump Maintenance Procedure',
-                description: 'Complete maintenance procedure for centrifugal pumps',
-                version: '1.0.0',
-                language: 'en',
-                availableLanguages: ['en'],
-                category: 'Maintenance',
-                difficulty: 'Intermediate',
-                estimatedMinutes: 120,
-                keywords: ['pump', 'maintenance', 'centrifugal'],
-                author: 'GuideOS Team',
-                created: '2026-01-01',
-                updated: '2026-06-28'
+                showErrorScreen('Failed to Load Guide', error.message);
             },
-            equipment: {
-                manufacturer: 'Wilden',
-                series: 'P8',
-                model: 'P8-15',
-                revision: 'A',
-                voltage: 480,
-                frequency: 60,
-                fluid: 'Water'
-            },
-            theme: {
-                enabled: true,
-                primaryColor: '#0054a6',
-                secondaryColor: '#6c757d',
-                accentColor: '#007bff'
-            },
-            phases: [
-                {
-                    id: 'PHASE-01',
-                    title: 'Preparation',
-                    description: 'Prepare the pump and workspace for maintenance.',
-                    estimatedMinutes: 15,
-                    steps: [
-                        {
-                            id: 'STEP-01',
-                            title: 'Safety First',
-                            instruction: 'Ensure the pump is isolated from power and pressure. Lock out and tag out all energy sources.',
-                            estimatedMinutes: 5,
-                            warnings: [
-                                {
-                                    type: 'danger',
-                                    title: 'Electrical Hazard',
-                                    description: 'Failure to lock out power can result in serious injury or death.'
-                                }
-                            ]
-                        },
-                        {
-                            id: 'STEP-02',
-                            title: 'Gather Tools',
-                            instruction: 'Collect all required tools: {tool1}, {tool2}, and {tool3}.',
-                            estimatedMinutes: 5,
-                            entities: {
-                                tool1: { type: 'tool', name: 'Torque Wrench' },
-                                tool2: { type: 'tool', name: 'Screwdrivers' },
-                                tool3: { type: 'tool', name: 'Pliers' }
-                            }
-                        },
-                        {
-                            id: 'STEP-03',
-                            title: 'Prepare Workspace',
-                            instruction: 'Clear the area around the pump and ensure adequate lighting.',
-                            estimatedMinutes: 5
-                        }
-                    ]
-                },
-                {
-                    id: 'PHASE-02',
-                    title: 'Disassembly',
-                    description: 'Remove pump components for inspection.',
-                    estimatedMinutes: 45,
-                    steps: [
-                        {
-                            id: 'STEP-04',
-                            title: 'Remove Cover Bolts',
-                            instruction: 'Remove the four cover bolts using a {tool1}. Torque specification: {torque1}.',
-                            estimatedMinutes: 10,
-                            entities: {
-                                tool1: { type: 'tool', name: 'Socket Wrench' },
-                                torque1: { type: 'torque', value: 25, unit: 'lb-ft', precision: 0 }
-                            },
-                            warnings: [
-                                {
-                                    type: 'warning',
-                                    title: 'Bolt Order',
-                                    description: 'Remove bolts in a cross pattern to avoid warping the cover.'
-                                }
-                            ]
-                        },
-                        {
-                            id: 'STEP-05',
-                            title: 'Inspect Diaphragm',
-                            instruction: 'Remove the diaphragm and inspect for cracks or wear. Replace if damaged.',
-                            estimatedMinutes: 15,
-                            resources: [
-                                {
-                                    title: 'Diaphragm Inspection Guide',
-                                    description: 'OEM guide for diaphragm inspection',
-                                    url: 'https://example.com/diaphragm-inspection'
-                                }
-                            ]
-                        },
-                        {
-                            id: 'STEP-06',
-                            title: 'Check Valves',
-                            instruction: 'Inspect all check valves for proper seating and wear.',
-                            estimatedMinutes: 10
-                        }
-                    ]
-                },
-                {
-                    id: 'PHASE-03',
-                    title: 'Reassembly',
-                    description: 'Reassemble the pump with new components.',
-                    estimatedMinutes: 45,
-                    steps: [
-                        {
-                            id: 'STEP-07',
-                            title: 'Install New Diaphragm',
-                            instruction: 'Install the new diaphragm kit (Part {part1}).',
-                            estimatedMinutes: 15,
-                            entities: {
-                                part1: { type: 'part', partNumber: '928-001', description: 'Diaphragm Kit' }
-                            }
-                        },
-                        {
-                            id: 'STEP-08',
-                            title: 'Torque Cover Bolts',
-                            instruction: 'Install and torque the four cover bolts to {torque1}.',
-                            estimatedMinutes: 10,
-                            entities: {
-                                torque1: { type: 'torque', value: 25, unit: 'lb-ft', precision: 0 }
-                            }
-                        },
-                        {
-                            id: 'STEP-09',
-                            title: 'Test Operation',
-                            instruction: 'Start the pump and verify normal operation. Check for leaks.',
-                            estimatedMinutes: 20,
-                            warnings: [
-                                {
-                                    type: 'information',
-                                    title: 'Initial Testing',
-                                    description: 'Run the pump for at least 5 minutes to verify all systems are functioning.'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            resources: [
-                {
-                    title: 'P8 Maintenance Manual',
-                    description: 'Complete maintenance manual for Wilden P8 pumps',
-                    url: 'https://example.com/p8-manual'
-                }
-            ]
-        };
-
-        // Process the sample guide
-        processGuide(sampleGuide, 'SAMPLE001');
+            onNotFound: function() {
+                showErrorScreen('Guide Not Found', 'The guide "' + guideId + '" could not be found.');
+            }
+        });
     }
 
     // ===== Process Guide =====
     function processGuide(guide, guideId) {
         try {
             // Validate the guide
-            const validation = validateGuide(guide);
-            if (!validation.valid) {
-                throw new Error('Invalid Guide: ' + validation.errors.join(', '));
+            const validation = Validation.validateGuideSpec(guide);
+            if (!validation.success) {
+                throw new Error('Invalid GuideSpec: ' + validation.errors.join(', '));
             }
 
             // Store the guide
             state.currentGuide = guide;
             state.currentGuideId = guideId;
+            
+            // Load saved progress and notes for this guide
+            state.progress = Storage.load('Progress-' + guideId, {});
+            state.notes = Storage.load('Notes-' + guideId, {});
             
             // Hide loading screen
             hideLoadingScreen();
@@ -586,75 +445,30 @@
             // Show guide content
             showGuideContent();
             
+            // Save last guide ID
+            Storage.save('LastGuideId', guideId);
+            
         } catch (error) {
             console.error('Failed to process guide:', error);
             showErrorScreen('Invalid Guide', error.message);
         }
     }
 
-    // ===== Validate Guide =====
-    function validateGuide(guide) {
-        const errors = [];
-        const warnings = [];
-
-        // Check for required fields
-        if (!guide.guideSpecVersion) {
-            errors.push('Missing guideSpecVersion');
+    // ===== Update URL =====
+    function updateUrl(guideId) {
+        if (history.pushState) {
+            const newUrl = window.location.pathname + '?g=' + guideId;
+            history.pushState({ guideId: guideId }, '', newUrl);
         }
-        
-        if (!guide.guide) {
-            errors.push('Missing guide object');
-        } else {
-            if (!guide.guide.title) {
-                errors.push('Missing guide.title');
-            }
-            if (!guide.guide.id && guide.guideSpecVersion === '1.0') {
-                warnings.push('Guide ID is recommended for published guides');
-            }
-        }
-
-        if (!guide.phases || !Array.isArray(guide.phases) || guide.phases.length === 0) {
-            errors.push('Missing or empty phases array');
-        }
-
-        // Check phases and steps
-        if (guide.phases) {
-            guide.phases.forEach(function(phase, phaseIndex) {
-                if (!phase.id) {
-                    errors.push('Phase ' + (phaseIndex + 1) + ' is missing id');
-                }
-                if (!phase.title) {
-                    errors.push('Phase ' + (phaseIndex + 1) + ' is missing title');
-                }
-                if (!phase.steps || !Array.isArray(phase.steps)) {
-                    errors.push('Phase ' + (phaseIndex + 1) + ' is missing steps array');
-                } else {
-                    phase.steps.forEach(function(step, stepIndex) {
-                        if (!step.id) {
-                            errors.push('Phase ' + (phaseIndex + 1) + ', Step ' + (stepIndex + 1) + ' is missing id');
-                        }
-                        if (!step.title) {
-                            errors.push('Phase ' + (phaseIndex + 1) + ', Step ' + (stepIndex + 1) + ' is missing title');
-                        }
-                        if (!step.instruction) {
-                            errors.push('Phase ' + (phaseIndex + 1) + ', Step ' + (stepIndex + 1) + ' is missing instruction');
-                        }
-                    });
-                }
-            });
-        }
-
-        return {
-            valid: errors.length === 0,
-            errors: errors,
-            warnings: warnings
-        };
     }
 
     // ===== Render Guide =====
     function renderGuide() {
         const guide = state.currentGuide;
-        
+        if (!guide) {
+            return;
+        }
+
         // Update guide info in header
         if (elements.guideTitle) {
             elements.guideTitle.textContent = guide.guide.title || 'Untitled Guide';
@@ -683,13 +497,21 @@
             elements.metadataDifficulty.textContent = guide.guide.difficulty || '-';
         }
         if (elements.metadataTime) {
-            elements.metadataTime.textContent = guide.guide.estimatedMinutes + ' minutes' || '-';
+            elements.metadataTime.textContent = (guide.guide.estimatedMinutes || 0) + ' minutes';
+        }
+
+        // Apply manufacturer theme if available
+        if (guide.theme && guide.theme.enabled) {
+            Theme.setManufacturerTheme(guide.theme);
+            if (state.settings.manufacturerTheme) {
+                Theme.toggleManufacturerTheme(true);
+            }
         }
 
         // Render phases
         renderPhases(guide.phases);
         
-        // Update progress (for now, just show 0%)
+        // Update progress
         updateProgress();
     }
 
@@ -731,8 +553,10 @@
         
         const phaseMeta = document.createElement('div');
         phaseMeta.className = 'phase-meta';
-        phaseMeta.textContent = (phase.steps ? phase.steps.length + ' steps' : '') + 
-            (phase.estimatedMinutes ? ' | ' + phase.estimatedMinutes + ' min' : '');
+        const stepCount = phase.steps ? phase.steps.length : 0;
+        const timeText = phase.estimatedMinutes ? phase.estimatedMinutes + ' min' : '';
+        phaseMeta.textContent = stepCount + ' step' + (stepCount !== 1 ? 's' : '') + 
+            (timeText ? ' | ' + timeText : '');
         
         phaseHeaderLeft.appendChild(phaseTitle);
         phaseHeaderLeft.appendChild(phaseMeta);
@@ -785,10 +609,20 @@
         stepCard.setAttribute('data-phase-id', phaseId);
 
         // Step Checkbox
+        const stepCheckboxContainer = document.createElement('label');
+        stepCheckboxContainer.className = 'step-checkbox-container';
+        
         const stepCheckbox = document.createElement('input');
         stepCheckbox.type = 'checkbox';
         stepCheckbox.className = 'step-checkbox';
         stepCheckbox.id = 'step-' + step.id;
+        
+        // Set checked state from progress
+        if (state.progress[phaseId] && state.progress[phaseId][step.id]) {
+            stepCheckbox.checked = true;
+        }
+        
+        stepCheckboxContainer.appendChild(stepCheckbox);
         
         // Step Content
         const stepContent = document.createElement('div');
@@ -801,19 +635,14 @@
         const stepInstruction = document.createElement('p');
         stepInstruction.className = 'step-instruction';
         
-        // Process instruction (replace placeholders with entity values for now)
+        // Resolve placeholders in instruction
         let instructionText = step.instruction || '';
         if (step.entities) {
-            for (const [placeholder, entity] of Object.entries(step.entities)) {
-                const placeholderRegex = new RegExp('\{' + placeholder + '\}', 'g');
-                if (entity.type === 'torque') {
-                    instructionText = instructionText.replace(placeholderRegex, entity.value + ' ' + entity.unit);
-                } else if (entity.type === 'tool' || entity.type === 'part') {
-                    instructionText = instructionText.replace(placeholderRegex, entity.name || entity.partNumber || placeholder);
-                } else {
-                    instructionText = instructionText.replace(placeholderRegex, JSON.stringify(entity));
-                }
-            }
+            instructionText = Entities.resolveInstruction(
+                instructionText,
+                step.entities,
+                state.settings.unitSystem
+            );
         }
         stepInstruction.innerHTML = Utils.escapeHtml(instructionText);
         
@@ -836,6 +665,14 @@
             stepMeta.appendChild(warningBadge);
         }
         
+        if (step.resources && step.resources.length > 0) {
+            const resourceBadge = document.createElement('span');
+            resourceBadge.className = 'resource-badge';
+            resourceBadge.textContent = '&#128196;' + step.resources.length;
+            resourceBadge.title = step.resources.length + ' resource(s)';
+            stepMeta.appendChild(resourceBadge);
+        }
+        
         stepContent.appendChild(stepTitle);
         stepContent.appendChild(stepInstruction);
         if (stepMeta.children.length > 0) {
@@ -848,28 +685,75 @@
             warningsContainer.className = 'step-warnings';
             
             step.warnings.forEach(function(warning) {
-                const warningElement = document.createElement('div');
-                warningElement.className = 'warning-card warning-' + (warning.type || 'information');
-                
-                const warningTitle = document.createElement('strong');
-                warningTitle.textContent = warning.title || warning.type || 'Warning';
-                
-                const warningDescription = document.createElement('p');
-                warningDescription.textContent = warning.description || '';
-                
-                warningElement.appendChild(warningTitle);
-                warningElement.appendChild(warningDescription);
+                const warningElement = createWarningElement(warning);
                 warningsContainer.appendChild(warningElement);
             });
             
             stepContent.appendChild(warningsContainer);
         }
         
-        // Assemble step card
-        const stepCheckboxContainer = document.createElement('label');
-        stepCheckboxContainer.className = 'step-checkbox-container';
-        stepCheckboxContainer.appendChild(stepCheckbox);
+        // Resources
+        if (step.resources && step.resources.length > 0) {
+            const resourcesContainer = document.createElement('div');
+            resourcesContainer.className = 'step-resources';
+            
+            step.resources.forEach(function(resource) {
+                const resourceElement = createResourceElement(resource);
+                resourcesContainer.appendChild(resourceElement);
+            });
+            
+            stepContent.appendChild(resourcesContainer);
+        }
         
+        // Notes Section
+        const notesContainer = document.createElement('div');
+        notesContainer.className = 'step-notes';
+        
+        const notesHeader = document.createElement('div');
+        notesHeader.className = 'notes-header';
+        notesHeader.innerHTML = '<span>&#128196; Notes</span>';
+        
+        const notesInputContainer = document.createElement('div');
+        notesInputContainer.className = 'notes-input-container';
+        
+        const notesInput = document.createElement('textarea');
+        notesInput.className = 'notes-input';
+        notesInput.placeholder = 'Add your notes here...';
+        notesInput.setAttribute('data-step-id', step.id);
+        notesInput.setAttribute('data-phase-id', phaseId);
+        
+        // Load saved note
+        if (state.notes[phaseId] && state.notes[phaseId][step.id]) {
+            notesInput.value = state.notes[phaseId][step.id];
+        }
+        
+        // Auto-expand textarea
+        notesInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            
+            // Save note
+            saveNote(phaseId, step.id, this.value);
+        });
+        
+        notesInputContainer.appendChild(notesInput);
+        notesContainer.appendChild(notesHeader);
+        notesContainer.appendChild(notesInputContainer);
+        
+        // Check if notes should be expanded
+        const isExpanded = state.settings.expandedNotes[step.id];
+        if (!isExpanded) {
+            notesContainer.classList.add('collapsed');
+        }
+        
+        // Add toggle for notes
+        notesHeader.addEventListener('click', function() {
+            toggleNotes(step.id, notesContainer);
+        });
+        
+        stepContent.appendChild(notesContainer);
+        
+        // Assemble step card
         stepCard.appendChild(stepCheckboxContainer);
         stepCard.appendChild(stepContent);
         
@@ -881,6 +765,52 @@
         return stepCard;
     }
 
+    // ===== Create Warning Element =====
+    function createWarningElement(warning) {
+        const warningElement = document.createElement('div');
+        const type = warning.type || 'information';
+        warningElement.className = 'warning-card warning-' + type;
+        
+        const warningTitle = document.createElement('strong');
+        warningTitle.className = 'warning-title';
+        warningTitle.textContent = warning.title || type.charAt(0).toUpperCase() + type.slice(1);
+        
+        const warningDescription = document.createElement('p');
+        warningDescription.className = 'warning-description';
+        warningDescription.textContent = warning.description || '';
+        
+        warningElement.appendChild(warningTitle);
+        warningElement.appendChild(warningDescription);
+        
+        return warningElement;
+    }
+
+    // ===== Create Resource Element =====
+    function createResourceElement(resource) {
+        const resourceElement = document.createElement('div');
+        resourceElement.className = 'resource-card';
+        
+        const resourceLink = document.createElement('a');
+        resourceLink.className = 'resource-link';
+        resourceLink.href = resource.url || '#';
+        resourceLink.target = '_blank';
+        resourceLink.rel = 'noopener noreferrer';
+        
+        const resourceTitle = document.createElement('span');
+        resourceTitle.className = 'resource-title';
+        resourceTitle.textContent = resource.title || resource.url || 'Resource';
+        
+        const resourceDescription = document.createElement('span');
+        resourceDescription.className = 'resource-description';
+        resourceDescription.textContent = resource.description ? ' - ' + resource.description : '';
+        
+        resourceLink.appendChild(resourceTitle);
+        resourceLink.appendChild(resourceDescription);
+        resourceElement.appendChild(resourceLink);
+        
+        return resourceElement;
+    }
+
     // ===== Toggle Phase =====
     function togglePhase(phaseId, phaseContent, phaseToggle) {
         const isCollapsed = phaseContent.classList.toggle('collapsed');
@@ -889,6 +819,22 @@
         // Save collapsed state
         state.settings.collapsedPhases[phaseId] = isCollapsed;
         Storage.save('CollapsedPhases', state.settings.collapsedPhases);
+    }
+
+    // ===== Toggle Notes =====
+    function toggleNotes(stepId, notesContainer) {
+        const isExpanded = notesContainer.classList.toggle('collapsed');
+        state.settings.expandedNotes[stepId] = !isExpanded;
+        Storage.save('ExpandedNotes', state.settings.expandedNotes);
+    }
+
+    // ===== Save Note =====
+    function saveNote(phaseId, stepId, value) {
+        if (!state.notes[phaseId]) {
+            state.notes[phaseId] = {};
+        }
+        state.notes[phaseId][stepId] = value;
+        Storage.save('Notes-' + state.currentGuideId, state.notes);
     }
 
     // ===== Toggle Step Completion =====
@@ -930,7 +876,7 @@
             if (phase.steps) {
                 phase.steps.forEach(function(step) {
                     totalSteps++;
-                    if (state.progress && state.progress[phase.id] && state.progress[phase.id][step.id]) {
+                    if (state.progress[phase.id] && state.progress[phase.id][step.id]) {
                         completedSteps++;
                     }
                 });
@@ -949,14 +895,6 @@
         }
         if (elements.progressSteps) {
             elements.progressSteps.textContent = completedSteps + '/' + totalSteps + ' Steps';
-        }
-    }
-
-    // ===== Update URL =====
-    function updateUrl(guideId) {
-        if (history.pushState) {
-            const newUrl = window.location.pathname + '?g=' + guideId;
-            history.pushState({ guideId: guideId }, '', newUrl);
         }
     }
 
@@ -1022,6 +960,8 @@
         if (elements.loadingGuideId) {
             elements.loadingGuideId.textContent = 'Guide ID: ' + guideId;
         }
+        
+        state.isLoading = true;
     }
 
     function hideLoadingScreen() {
@@ -1073,7 +1013,9 @@
         initialize: initialize,
         loadGuide: loadGuide,
         getState: function() { return state; },
-        getElements: function() { return elements; }
+        getElements: function() { return elements; },
+        getCurrentGuide: function() { return state.currentGuide; },
+        getCurrentGuideId: function() { return state.currentGuideId; }
     };
 
     // Initialize when DOM is ready

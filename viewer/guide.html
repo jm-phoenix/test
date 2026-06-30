@@ -114,6 +114,7 @@
                             <h3>Equipment</h3>
                             <p id="metadata-manufacturer">-</p>
                             <p id="metadata-model">-</p>
+                            <p id="metadata-series">-</p>
                         </div>
                         <div class="metadata-card">
                             <h3>Details</h3>
@@ -176,10 +177,16 @@
     <!-- Dialogs (will be populated by dialogs.js) -->
     <div id="dialog-container" class="dialog-container"></div>
 
+    <!-- Load shared modules -->
     <script src="../shared/storage.js"></script>
     <script src="../shared/theme.js"></script>
     <script src="../shared/utils.js"></script>
     <script src="../shared/dialogs.js"></script>
+    <script src="../shared/validation.js"></script>
+    <script src="../shared/entities.js"></script>
+    <script src="../shared/guide-loader.js"></script>
+    
+    <!-- Load viewer module -->
     <script src="guide.js"></script>
 </body>
 </html>

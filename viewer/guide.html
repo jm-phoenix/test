@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GuideOS Viewer - Technical Procedure Viewer">
+    <title>GuideOS Viewer</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">&#9881;</span>
+                <span class="logo-text">GuideOS</span>
+            </div>
+            <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                <span class="hamburger"></span>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <h3>Guide</h3>
+                <ul>
+                    <li><a href="#" id="nav-overview" class="nav-link active">Overview</a></li>
+                    <li><a href="#" id="nav-phases" class="nav-link">Phases</a></li>
+                    <li><a href="#" id="nav-search" class="nav-link">Search</a></li>
+                </ul>
+            </div>
+            <div class="nav-section">
+                <h3>Settings</h3>
+                <ul>
+                    <li>
+                        <label class="theme-toggle">
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Dark Mode</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="theme-toggle">
+                            <input type="checkbox" id="manufacturer-theme-toggle">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Manufacturer Theme</span>
+                        </label>
+                    </li>
+                    <li>
+                        <select id="unit-system-select" class="select-input">
+                            <option value="original">Original</option>
+                            <option value="metric">Metric</option>
+                            <option value="imperial">Imperial</option>
+                        </select>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="version-info">
+                <span>Viewer v1.0.0</span>
+                <span>GuideSpec v1.0</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button id="mobile-sidebar-toggle" class="mobile-sidebar-toggle" aria-label="Open menu">
+                    <span class="hamburger"></span>
+                </button>
+                <div class="guide-info">
+                    <h1 id="guide-title">GuideOS Viewer</h1>
+                    <p id="guide-subtitle">Load a guide to begin</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button id="export-btn" class="btn btn-secondary" disabled>Export</button>
+                    <button id="ai-btn" class="btn btn-primary" disabled>AI Help</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div id="content-area" class="content-area">
+            <!-- Welcome Screen (shown when no guide is loaded) -->
+            <div id="welcome-screen" class="welcome-screen">
+                <div class="welcome-card">
+                    <h2>Welcome to GuideOS Viewer</h2>
+                    <p>Scan a QR code or load a guide to begin.</p>
+                    <div class="welcome-actions">
+                        <button id="load-sample-btn" class="btn btn-primary">Load Sample Guide</button>
+                        <button id="load-guide-btn" class="btn btn-secondary">Load Guide by ID</button>
+                    </div>
+                    <div id="load-guide-form" class="load-guide-form hidden">
+                        <input type="text" id="guide-id-input" placeholder="Enter Guide ID (e.g., 8F35A198)" class="input-field">
+                        <button id="load-guide-submit" class="btn btn-primary">Load</button>
+                        <button id="load-guide-cancel" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guide Content (hidden until guide is loaded) -->
+            <div id="guide-content" class="guide-content hidden">
+                <!-- Metadata Section -->
+                <section id="guide-metadata" class="metadata-section">
+                    <div class="metadata-grid">
+                        <div class="metadata-card">
+                            <h3>Equipment</h3>
+                            <p id="metadata-manufacturer">-</p>
+                            <p id="metadata-model">-</p>
+                        </div>
+                        <div class="metadata-card">
+                            <h3>Details</h3>
+                            <p id="metadata-category">-</p>
+                            <p id="metadata-difficulty">-</p>
+                            <p id="metadata-time">-</p>
+                        </div>
+                        <div class="metadata-card">
+                            <h3>Progress</h3>
+                            <div class="progress-bar-container">
+                                <div id="progress-bar" class="progress-bar"></div>
+                                <span id="progress-text">0% Complete</span>
+                            </div>
+                            <p id="progress-steps">0/0 Steps</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Phases Section -->
+                <section id="phases-section" class="phases-section">
+                    <div class="phases-nav">
+                        <button id="collapse-all-btn" class="btn btn-secondary">Collapse All</button>
+                        <button id="expand-all-btn" class="btn btn-secondary">Expand All</button>
+                    </div>
+                    <div id="phases-container" class="phases-container"></div>
+                </section>
+            </div>
+
+            <!-- Error Screen -->
+            <div id="error-screen" class="error-screen hidden">
+                <div class="error-card">
+                    <h2 id="error-title">Error</h2>
+                    <p id="error-message">An error occurred.</p>
+                    <button id="error-retry-btn" class="btn btn-primary">Retry</button>
+                    <button id="error-back-btn" class="btn btn-secondary">Back</button>
+                </div>
+            </div>
+
+            <!-- Loading Screen -->
+            <div id="loading-screen" class="loading-screen hidden">
+                <div class="loading-card">
+                    <div class="spinner"></div>
+                    <p id="loading-message">Loading Guide...</p>
+                    <p id="loading-guide-id" class="loading-subtext"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">
+                <span>GuideOS &copy; 2026</span>
+            </div>
+            <div class="footer-right">
+                <span id="current-guide-id">No Guide Loaded</span>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Dialogs (will be populated by dialogs.js) -->
+    <div id="dialog-container" class="dialog-container"></div>
+
+    <script src="../shared/storage.js"></script>
+    <script src="../shared/theme.js"></script>
+    <script src="../shared/utils.js"></script>
+    <script src="../shared/dialogs.js"></script>
+    <script src="guide.js"></script>
+</body>
+</html>

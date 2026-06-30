@@ -1,0 +1,192 @@
+{
+  "guideSpecVersion": "1.0",
+  "guide": {
+    "id": "SAMPLE001",
+    "title": "Pump Maintenance Procedure",
+    "description": "Complete maintenance procedure for centrifugal pumps",
+    "version": "1.0.0",
+    "language": "en",
+    "availableLanguages": ["en"],
+    "category": "Maintenance",
+    "difficulty": "Intermediate",
+    "estimatedMinutes": 120,
+    "keywords": ["pump", "maintenance", "centrifugal", "wilden"],
+    "author": "GuideOS Team",
+    "created": "2026-01-01",
+    "updated": "2026-06-28"
+  },
+  "equipment": {
+    "manufacturer": "Wilden",
+    "series": "P8",
+    "model": "P8-15",
+    "revision": "A",
+    "voltage": 480,
+    "frequency": 60,
+    "fluid": "Water"
+  },
+  "theme": {
+    "enabled": true,
+    "primaryColor": "#0054a6",
+    "secondaryColor": "#6c757d",
+    "accentColor": "#007bff",
+    "backgroundColor": "#f0f4f8",
+    "surfaceColor": "#ffffff",
+    "textColor": "#1a1a1a"
+  },
+  "phases": [
+    {
+      "id": "PHASE-01",
+      "title": "Preparation",
+      "description": "Prepare the pump and workspace for maintenance.",
+      "estimatedMinutes": 15,
+      "steps": [
+        {
+          "id": "STEP-01",
+          "title": "Safety First",
+          "instruction": "Ensure the pump is isolated from power and pressure. Lock out and tag out all energy sources.",
+          "estimatedMinutes": 5,
+          "warnings": [
+            {
+              "type": "danger",
+              "title": "Electrical Hazard",
+              "description": "Failure to lock out power can result in serious injury or death."
+            }
+          ]
+        },
+        {
+          "id": "STEP-02",
+          "title": "Gather Tools",
+          "instruction": "Collect all required tools: {tool1}, {tool2}, and {tool3}.",
+          "estimatedMinutes": 5,
+          "entities": {
+            "tool1": {
+              "type": "tool",
+              "name": "Torque Wrench"
+            },
+            "tool2": {
+              "type": "tool",
+              "name": "Screwdrivers"
+            },
+            "tool3": {
+              "type": "tool",
+              "name": "Pliers"
+            }
+          }
+        },
+        {
+          "id": "STEP-03",
+          "title": "Prepare Workspace",
+          "instruction": "Clear the area around the pump and ensure adequate lighting.",
+          "estimatedMinutes": 5
+        }
+      ]
+    },
+    {
+      "id": "PHASE-02",
+      "title": "Disassembly",
+      "description": "Remove pump components for inspection.",
+      "estimatedMinutes": 45,
+      "steps": [
+        {
+          "id": "STEP-04",
+          "title": "Remove Cover Bolts",
+          "instruction": "Remove the four cover bolts using a {tool1}. Torque specification: {torque1}.",
+          "estimatedMinutes": 10,
+          "entities": {
+            "tool1": {
+              "type": "tool",
+              "name": "Socket Wrench"
+            },
+            "torque1": {
+              "type": "torque",
+              "value": 25,
+              "unit": "lb-ft",
+              "precision": 0
+            }
+          },
+          "warnings": [
+            {
+              "type": "warning",
+              "title": "Bolt Order",
+              "description": "Remove bolts in a cross pattern to avoid warping the cover."
+            }
+          ]
+        },
+        {
+          "id": "STEP-05",
+          "title": "Inspect Diaphragm",
+          "instruction": "Remove the diaphragm and inspect for cracks or wear. Replace if damaged.",
+          "estimatedMinutes": 15,
+          "resources": [
+            {
+              "title": "Diaphragm Inspection Guide",
+              "description": "OEM guide for diaphragm inspection",
+              "url": "https://example.com/diaphragm-inspection"
+            }
+          ]
+        },
+        {
+          "id": "STEP-06",
+          "title": "Check Valves",
+          "instruction": "Inspect all check valves for proper seating and wear.",
+          "estimatedMinutes": 10
+        }
+      ]
+    },
+    {
+      "id": "PHASE-03",
+      "title": "Reassembly",
+      "description": "Reassemble the pump with new components.",
+      "estimatedMinutes": 45,
+      "steps": [
+        {
+          "id": "STEP-07",
+          "title": "Install New Diaphragm",
+          "instruction": "Install the new diaphragm kit (Part {part1}).",
+          "estimatedMinutes": 15,
+          "entities": {
+            "part1": {
+              "type": "part",
+              "partNumber": "928-001",
+              "description": "Diaphragm Kit"
+            }
+          }
+        },
+        {
+          "id": "STEP-08",
+          "title": "Torque Cover Bolts",
+          "instruction": "Install and torque the four cover bolts to {torque1}.",
+          "estimatedMinutes": 10,
+          "entities": {
+            "torque1": {
+              "type": "torque",
+              "value": 25,
+              "unit": "lb-ft",
+              "precision": 0
+            }
+          }
+        },
+        {
+          "id": "STEP-09",
+          "title": "Test Operation",
+          "instruction": "Start the pump and verify normal operation. Check for leaks.",
+          "estimatedMinutes": 20,
+          "warnings": [
+            {
+              "type": "information",
+              "title": "Initial Testing",
+              "description": "Run the pump for at least 5 minutes to verify all systems are functioning."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "title": "P8 Maintenance Manual",
+      "description": "Complete maintenance manual for Wilden P8 pumps",
+      "url": "https://example.com/p8-manual"
+    }
+  ]
+}

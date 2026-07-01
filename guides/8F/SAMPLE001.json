@@ -1,0 +1,227 @@
+{
+  "guideSpecVersion": "1.0",
+  "guide": {
+    "id": "SAMPLE001",
+    "title": "Sample Maintenance Guide",
+    "description": "A sample guide demonstrating GuideOS capabilities",
+    "version": "1.0.0",
+    "language": "en",
+    "availableLanguages": ["en"],
+    "category": "Maintenance",
+    "difficulty": "Intermediate",
+    "estimatedMinutes": 60,
+    "keywords": ["sample", "maintenance", "guide", "demonstration"],
+    "author": "GuideOS Team",
+    "created": "2026-01-01T00:00:00Z",
+    "updated": "2026-07-18T00:00:00Z"
+  },
+  "equipment": {
+    "manufacturer": "Sample Corp",
+    "series": "X Series",
+    "model": "X-1000",
+    "revision": "A",
+    "partNumber": "X1000-A",
+    "voltage": "240V",
+    "frequency": "50Hz",
+    "notes": "Standard industrial equipment"
+  },
+  "theme": {
+    "enabled": true,
+    "primaryColor": "#0054A6",
+    "secondaryColor": "#003366",
+    "accentColor": "#0078D7",
+    "backgroundColor": "#F5F5F5",
+    "surfaceColor": "#FFFFFF",
+    "textColor": "#333333"
+  },
+  "phases": [
+    {
+      "id": "PHASE-01",
+      "title": "Preparation",
+      "description": "Prepare the equipment and workspace for maintenance",
+      "estimatedMinutes": 15,
+      "steps": [
+        {
+          "id": "STEP-01",
+          "title": "Safety First",
+          "instruction": "Ensure all power is disconnected and lockout/tagout procedures are followed.",
+          "estimatedMinutes": 5,
+          "warnings": [
+            {
+              "type": "danger",
+              "title": "High Voltage",
+              "description": "This equipment operates at high voltage. Always disconnect power before maintenance."
+            }
+          ]
+        },
+        {
+          "id": "STEP-02",
+          "title": "Gather Tools",
+          "instruction": "Collect all necessary tools including {tool1} and {tool2}.",
+          "estimatedMinutes": 3,
+          "entities": {
+            "tool1": {
+              "type": "tool",
+              "name": "Torque Wrench"
+            },
+            "tool2": {
+              "type": "tool",
+              "name": "Screwdriver Set"
+            }
+          }
+        },
+        {
+          "id": "STEP-03",
+          "title": "Prepare Workspace",
+          "instruction": "Clear the area around the equipment and ensure adequate lighting.",
+          "estimatedMinutes": 2
+        }
+      ]
+    },
+    {
+      "id": "PHASE-02",
+      "title": "Inspection",
+      "description": "Inspect the equipment for wear and damage",
+      "estimatedMinutes": 20,
+      "steps": [
+        {
+          "id": "STEP-04",
+          "title": "Visual Inspection",
+          "instruction": "Perform a thorough visual inspection of all components.",
+          "estimatedMinutes": 10
+        },
+        {
+          "id": "STEP-05",
+          "title": "Check Fasteners",
+          "instruction": "Verify that all bolts are torqued to {torque1}.",
+          "estimatedMinutes": 5,
+          "entities": {
+            "torque1": {
+              "type": "torque",
+              "value": 25,
+              "unit": "lb-ft",
+              "precision": 0
+            }
+          }
+        },
+        {
+          "id": "STEP-06",
+          "title": "Test Operation",
+          "instruction": "After inspection, test the equipment at {pressure1} to verify proper operation.",
+          "estimatedMinutes": 5,
+          "entities": {
+            "pressure1": {
+              "type": "pressure",
+              "value": 100,
+              "unit": "psi",
+              "precision": 0
+            }
+          },
+          "warnings": [
+            {
+              "type": "warning",
+              "title": "Pressure Test",
+              "description": "Do not exceed maximum operating pressure during testing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-03",
+      "title": "Maintenance",
+      "description": "Perform required maintenance tasks",
+      "estimatedMinutes": 25,
+      "steps": [
+        {
+          "id": "STEP-07",
+          "title": "Lubricate Components",
+          "instruction": "Apply {lubricant1} to all moving parts as specified in the manual.",
+          "estimatedMinutes": 10,
+          "entities": {
+            "lubricant1": {
+              "type": "lubricant",
+              "name": "Industrial Grease"
+            }
+          },
+          "resources": [
+            {
+              "type": "Maintenance Manual",
+              "title": "Lubrication Schedule",
+              "description": "Official lubrication intervals and specifications",
+              "url": "https://example.com/manuals/lubrication"
+            }
+          ]
+        },
+        {
+          "id": "STEP-08",
+          "title": "Replace Filters",
+          "instruction": "Replace air filter {part1} and oil filter {part2}.",
+          "estimatedMinutes": 10,
+          "entities": {
+            "part1": {
+              "type": "part",
+              "partNumber": "FIL-001",
+              "description": "Air Filter"
+            },
+            "part2": {
+              "type": "part",
+              "partNumber": "FIL-002",
+              "description": "Oil Filter"
+            }
+          }
+        },
+        {
+          "id": "STEP-09",
+          "title": "Final Check",
+          "instruction": "Verify all maintenance tasks are complete and equipment is ready for operation.",
+          "estimatedMinutes": 5,
+          "codeBlocks": [
+            {
+              "title": "Maintenance Checklist",
+              "language": "text",
+              "code": "[ ] All fasteners tightened\n[ ] All filters replaced\n[ ] All components lubricated\n[ ] Visual inspection complete"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "type": "OEM Manual",
+      "title": "X-1000 Service Manual",
+      "description": "Complete service manual for X-1000 equipment",
+      "url": "https://example.com/manuals/x1000-service"
+    },
+    {
+      "type": "Datasheet",
+      "title": "X-1000 Technical Specifications",
+      "description": "Technical specifications and dimensions",
+      "url": "https://example.com/datasheets/x1000"
+    }
+  ],
+  "videos": [
+    {
+      "title": "X-1000 Maintenance Overview",
+      "description": "Video overview of maintenance procedures",
+      "url": "https://www.youtube.com/watch?v=example123"
+    }
+  ],
+  "searchLinks": [
+    {
+      "title": "Google AI Search",
+      "url": "https://www.google.com/search?q=Sample+Corp+X-1000+maintenance"
+    },
+    {
+      "title": "YouTube Search",
+      "url": "https://www.youtube.com/results?search_query=Sample+Corp+X-1000+maintenance"
+    }
+  ],
+  "metadata": {
+    "revisionNotes": "Initial release",
+    "approvalStatus": "Approved",
+    "internalCode": "GUIDE-001",
+    "tags": ["sample", "training", "demonstration"]
+  }
+}

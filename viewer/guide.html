@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuideOS Viewer</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">&#9776;</span>
+                    <span class="logo-text">GuideOS</span>
+                </div>
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                    <span class="hamburger"></span>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-label">Version</div>
+                    <div id="viewer-version" class="nav-value">1.0.0</div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-label">Navigation</div>
+                    <ul id="guide-nav" class="nav-list">
+                        <li class="nav-placeholder">Guide navigation will appear here</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-label">Theme</div>
+                    <div class="theme-controls">
+                        <button id="toggle-dark-mode" class="theme-btn" aria-label="Toggle dark mode">
+                            <span class="icon">&#9790;</span>
+                            <span class="label">Dark Mode</span>
+                        </button>
+                        <button id="toggle-manufacturer-theme" class="theme-btn" aria-label="Toggle manufacturer theme">
+                            <span class="icon">&#9733;</span>
+                            <span class="label">Manufacturer</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-label">Preferences</div>
+                    <div class="pref-controls">
+                        <select id="unit-system" class="pref-select">
+                            <option value="original">Original</option>
+                            <option value="imperial">Imperial</option>
+                            <option value="metric">Metric</option>
+                        </select>
+                        <select id="ai-provider" class="pref-select">
+                            <option value="none">None</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="copilot">Copilot</option>
+                            <option value="perplexity">Perplexity</option>
+                        </select>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="footer-info">
+                    <div id="guidespec-version" class="footer-value">GuideSpec 1.0</div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
+            <!-- Header -->
+            <header id="header" class="header">
+                <div class="header-left">
+                    <button id="mobile-sidebar-toggle" class="mobile-toggle" aria-label="Open menu">
+                        <span class="hamburger"></span>
+                    </button>
+                    <div class="guide-info">
+                        <h1 id="guide-title" class="guide-title">GuideOS Viewer</h1>
+                        <p id="guide-subtitle" class="guide-subtitle">Welcome to GuideOS</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-controls">
+                        <button id="header-dark-toggle" class="header-btn" aria-label="Toggle dark mode">
+                            <span class="icon">&#9790;</span>
+                        </button>
+                        <button id="header-theme-toggle" class="header-btn" aria-label="Toggle manufacturer theme">
+                            <span class="icon">&#9733;</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div id="content-area" class="content-area">
+                <div id="welcome-screen" class="welcome-screen">
+                    <div class="welcome-card">
+                        <div class="welcome-icon">&#9881;</div>
+                        <h2>Welcome to GuideOS Viewer</h2>
+                        <p>Version 1.0.0 - Sprint 03 Complete</p>
+                        <p class="welcome-description">
+                            Load a guide by adding <code>?g=&lt;guide-id&gt;</code> to the URL.<br>
+                            Example: <code>guide.html?g=SAMPLE001</code>
+                        </p>
+                        <p class="welcome-description">
+                            Sprint 03 implements the Knowledge Engine with entity resolution,<br>
+                            localization, unit conversion, and AI context building.
+                        </p>
+                        <div class="welcome-actions">
+                            <button id="load-sample" class="btn btn-primary">Load Sample Guide</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="loading-screen" class="loading-screen hidden">
+                    <div class="loading-card">
+                        <div class="spinner"></div>
+                        <h2>Loading Guide...</h2>
+                        <p id="loading-guide-id">Guide ID: <span class="guide-id"></span></p>
+                    </div>
+                </div>
+                
+                <div id="error-screen" class="error-screen hidden">
+                    <div class="error-card">
+                        <div class="error-icon">&#9888;</div>
+                        <h2 id="error-title">Error</h2>
+                        <p id="error-message">An error occurred</p>
+                        <div class="error-actions">
+                            <button id="error-retry" class="btn btn-primary">Retry</button>
+                            <button id="error-back" class="btn btn-secondary">Back</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="guide-container" class="guide-container hidden">
+                    <!-- Guide content will be rendered here by renderer.js -->
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer id="footer" class="footer">
+                <div class="footer-left">
+                    <span id="footer-viewer-version">Viewer 1.0.0</span>
+                    <span class="footer-separator">|</span>
+                    <span id="footer-guidespec-version">GuideSpec 1.0</span>
+                </div>
+                <div class="footer-right">
+                    <span>&copy; 2026 GuideOS</span>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <!-- Overlay for mobile sidebar -->
+    <div id="overlay" class="overlay hidden"></div>
+    
+    <!-- Load shared modules -->
+    <script src="../shared/storage.js"></script>
+    <script src="../shared/theme.js"></script>
+    <script src="../shared/utils.js"></script>
+    <script src="../shared/dialogs.js"></script>
+    
+    <!-- Load Sprint 02 modules -->
+    <script src="../shared/guide-loader.js"></script>
+    <script src="../shared/validation.js"></script>
+    <script src="../shared/renderer.js"></script>
+    
+    <!-- Load Sprint 03 modules -->
+    <script src="../shared/entities.js"></script>
+    <script src="../shared/localization.js"></script>
+    <script src="../shared/units.js"></script>
+    <script src="../shared/resources.js"></script>
+    <script src="../shared/search.js"></script>
+    
+    <!-- Load main application -->
+    <script src="guide.js"></script>
+</body>
+</html>
